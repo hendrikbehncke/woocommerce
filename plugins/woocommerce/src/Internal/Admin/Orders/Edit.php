@@ -250,11 +250,6 @@ class Edit {
 			'high'
 		);
 
-		// Add customer history meta box if analytics is enabled.
-		if ( 'yes' !== get_option( 'woocommerce_analytics_enabled' ) ) {
-			return;
-		}
-
 		/**
 		 * Customer history meta box.
 		 *
