@@ -383,8 +383,20 @@ export class EditorUtils {
 			name: templateName,
 			exact: true,
 		} );
-		templateLink.click();
+		await templateLink.click();
+		if ( templateType === 'wp_template_part' ) {
+			await this.enterEditMode();
+		}
 		await this.closeWelcomeGuideModal();
+
+		const templateTypeName =
+			templateType === 'wp_template' ? 'template' : 'template part';
+
+		await this.page
+			.getByRole( 'heading', {
+				name: `Editing ${ templateTypeName }: ${ templateName }`,
+			} )
+			.waitFor();
 	}
 
 	async revertTemplateCreation( templateName: string ) {
