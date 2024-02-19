@@ -81,7 +81,7 @@ class WC_Admin {
 		include_once __DIR__ . '/marketplace-suggestions/class-wc-marketplace-suggestions.php';
 		include_once __DIR__ . '/marketplace-suggestions/class-wc-marketplace-updater.php';
 
-		// Marketplace promotions
+		// Marketplace promotions.
 		include_once __DIR__ . '/class-wc-admin-marketplace-promotions.php';
 	}
 

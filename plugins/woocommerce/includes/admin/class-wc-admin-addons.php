@@ -81,7 +81,7 @@ class WC_Admin_Addons {
 	public static function fetch_featured() {
 		$transient_name = 'wc_addons_featured';
 		// Important: WCCOM Extensions API v2.0 is used.
-		$url = 'https://woocommerce.com/wp-json/wccom-extensions/2.0/featured';
+		$url      = 'https://woocommerce.com/wp-json/wccom-extensions/2.0/featured';
 		$locale   = get_user_locale();
 		$featured = self::get_locale_data_from_transient( $transient_name, $locale );
 
@@ -91,7 +91,7 @@ class WC_Admin_Addons {
 				'locale'  => true,
 				'country' => true,
 			);
-			$raw_featured = self::fetch( $url, $fetch_options );
+			$raw_featured  = self::fetch( $url, $fetch_options );
 
 			if ( is_wp_error( $raw_featured ) ) {
 				do_action( 'woocommerce_page_wc-addons_connection_error', $raw_featured->get_error_message() );
@@ -1550,13 +1550,15 @@ class WC_Admin_Addons {
 	 * Optionally pass user auth token, locale or country.
 	 *
 	 * @param string $url
-	 * @param ?array $options     Options for the request. For example, to pass auth token,
-	 *                            locale and country:
-	 *                            array(
-	 *                            'auth' => true,
-	 *                            'locale' => true,
-	 *                            'country' => true,
-	 *                            )
+	 * @param ?array $options Options for the request.
+	 *
+	 * For example, to pass auth token, locale and country:
+	 *
+	 *    array(
+	 *       'auth' => true,
+	 *       'locale' => true,
+	 *       'country' => true,
+	 *    )
 	 *
 	 * @return array|WP_Error
 	 */
@@ -1586,10 +1588,12 @@ class WC_Admin_Addons {
 
 		$query_string = ! empty( $parameters ) ? '?' . http_build_query( $parameters ) : '';
 
-		return wp_safe_remote_get( $url . $query_string,
+		return wp_safe_remote_get(
+			$url . $query_string,
 			array(
 				'headers'    => $headers,
 				'user-agent' => 'WooCommerce/' . WC()->version . '; ' . get_bloginfo( 'url' ),
-			) );
+			)
+		);
 	}
 }

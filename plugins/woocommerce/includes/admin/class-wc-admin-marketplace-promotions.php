@@ -42,6 +42,7 @@ class WC_Admin_Marketplace_Promotions {
 	 * @return bool
 	 */
 	public static function is_targeted_page_to_fetch_promotions(): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		if (
 			defined( 'DOING_AJAX' ) && DOING_AJAX
 			|| ! is_admin()
@@ -57,6 +58,7 @@ class WC_Admin_Marketplace_Promotions {
 			// WooCommerce home has page param but no path param
 			return ! isset( $_GET['path'] ) || $_GET['path'] === $targeted_path;
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return false;
 	}
@@ -71,6 +73,7 @@ class WC_Admin_Marketplace_Promotions {
 	 * @return bool
 	 */
 	public static function is_targeted_page_to_show_bubble_promotions(): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		if (
 			defined( 'DOING_AJAX' ) && DOING_AJAX
 			|| ! is_admin()
@@ -79,7 +82,7 @@ class WC_Admin_Marketplace_Promotions {
 			return false;
 		}
 
-		// We also target wc-admin, but that has more variations
+		// We also target wc-admin, but that has more variations.
 		$targeted_pages = array(
 			'wc-orders',
 			'wc-reports',
@@ -97,9 +100,10 @@ class WC_Admin_Marketplace_Promotions {
 		);
 
 		if ( 'wc-admin' === $_GET['page'] ) {
-			// WooCommerce home has page param but no path param
-			return ! isset( $_GET['path'] ) || in_array( $_GET['path'], $targeted_wc_admin_paths );
+			// WooCommerce home has page param but no path param.
+			return ! isset( $_GET['path'] ) || in_array( $_GET['path'], $targeted_wc_admin_paths, true );
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		return false;
 	}
@@ -123,22 +127,34 @@ class WC_Admin_Marketplace_Promotions {
 			$raw_promotions = WC_Admin_Addons::fetch( $url, $fetch_options );
 
 			if ( is_wp_error( $raw_promotions ) ) {
+				/**
+				 * Allows connection error to be handled.
+				 */
+				// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 				do_action( 'woocommerce_page_wc-addons_connection_error', $raw_promotions->get_error_message() );
 			}
 
 			$response_code = (int) wp_remote_retrieve_response_code( $raw_promotions );
 			if ( 200 !== $response_code ) {
+				/**
+				 * Allows connection error to be handled.
+				 */
+				// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 				do_action( 'woocommerce_page_wc-addons_connection_error', $response_code );
 			}
 
 			$promotions = json_decode( wp_remote_retrieve_body( $raw_promotions ), true );
 			if ( empty( $promotions ) || ! is_array( $promotions ) ) {
+				/**
+				 * Allows connection error to be handled.
+				 */
+				// phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 				do_action( 'woocommerce_page_wc-addons_connection_error', 'Empty or malformed response' );
 			}
 
 			if ( $promotions ) {
-				// Filter out any expired promotions
-				$promotions = WC_Admin_Marketplace_Promotions::get_active_promotions( $promotions );
+				// Filter out any expired promotions.
+				$promotions = self::get_active_promotions( $promotions );
 				set_transient( self::TRANSIENT_NAME, $promotions, DAY_IN_SECONDS );
 			}
 		}
@@ -150,9 +166,13 @@ class WC_Admin_Marketplace_Promotions {
 	 * WooCommerce menu.
 	 *
 	 * @return void
-	 * @throws Exception
+	 * @throws Exception  If we are unable to create a DateTime from the date_to_gmt
 	 */
 	private static function show_bubble_promotions() {
+
+		/**
+		 * Allows the menu bubble to be suppressed.
+		 */
 		if ( apply_filters( 'woocommerce_marketplace_suppress_menu_badges', false ) ) {
 			return;
 		}
@@ -162,10 +182,10 @@ class WC_Admin_Marketplace_Promotions {
 			return;
 		}
 
-		$bubble_promotions        = self::get_promotions_of_format( $promotions, 'menu_bubble' );
-		$now_date_time            = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
+		$bubble_promotions = self::get_promotions_of_format( $promotions, 'menu_bubble' );
+		$now_date_time     = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
 
-		// Let's make absolutely sure the promotion is still active
+		// Let's make absolutely sure the promotion is still active.
 		foreach ( $bubble_promotions as $promotion ) {
 			if ( ! isset( $promotion['date_to_gmt'] ) ) {
 				continue;
@@ -178,10 +198,12 @@ class WC_Admin_Marketplace_Promotions {
 			}
 
 			if ( $now_date_time < $date_to_gmt ) {
-				add_filter( 'woocommerce_marketplace_menu_items',
+				add_filter(
+					'woocommerce_marketplace_menu_items',
 					function ( $marketplace_pages ) use ( $promotion ) {
 						return self::filter_marketplace_menu_items( $marketplace_pages, $promotion );
-					} );
+					}
+				);
 
 				break;
 			}
@@ -191,8 +213,8 @@ class WC_Admin_Marketplace_Promotions {
 	/**
 	 * From the array of promotions, select those of a given format.
 	 *
-	 * @param ? array  $promotions
-	 * @param ? string $format
+	 * @param ? array  $promotions  Array of data about promotions of all formats
+	 * @param ? string $format      Format we want to filter for
 	 *
 	 * @return array
 	 */
@@ -203,7 +225,7 @@ class WC_Admin_Marketplace_Promotions {
 
 		$promotions_of_format = array();
 
-		// Find promotions of a given format
+		// Find promotions of a given format.
 		foreach ( $promotions as $promotion ) {
 			if ( ! isset( $promotion['format'] ) ) {
 				continue;
@@ -220,7 +242,7 @@ class WC_Admin_Marketplace_Promotions {
 	 * Find promotions that are still active – they have a date range that
 	 * includes the current date.
 	 *
-	 * @param ?array $promotions
+	 * @param ?array $promotions  Data about current promotions
 	 *
 	 * @return array
 	 */
@@ -245,10 +267,13 @@ class WC_Admin_Marketplace_Promotions {
 			}
 		}
 
-		// Sort promotions so the ones starting more recently are at the top
-		usort( $active_promotions, function ( $a, $b ) {
-			return $b['date_from_gmt'] <=> $a['date_from_gmt'];
-		} );
+		// Sort promotions so the ones starting more recently are at the top.
+		usort(
+			$active_promotions,
+			function ( $a, $b ) {
+				return $b['date_from_gmt'] <=> $a['date_from_gmt'];
+			}
+		);
 
 		return $active_promotions;
 	}
@@ -259,8 +284,8 @@ class WC_Admin_Marketplace_Promotions {
 	 * At the moment, the Extensions page is the only page in `$menu_items`.
 	 * Adds a bubble to the menu item.
 	 *
-	 * @param array  $menu_items
-	 * @param ?array $promotion
+	 * @param array  $menu_items  Arrays representing items in nav menu
+	 * @param ?array $promotion   Data about a promotion from the Woo.com API
 	 *
 	 * @return array
 	 */
@@ -273,7 +298,7 @@ class WC_Admin_Marketplace_Promotions {
 				'woocommerce' === $menu_item['parent']
 				&& $promotion['menu_item_id'] === $menu_item['id']
 			) {
-				$bubble_text = $promotion['content'][ self::$locale ] ?? ( $promotion['content']['en_US'] ?? __( 'Sale', 'woocommerce' ) );
+				$bubble_text                   = $promotion['content'][ self::$locale ] ?? ( $promotion['content']['en_US'] ?? __( 'Sale', 'woocommerce' ) );
 				$menu_items[ $index ]['title'] = $menu_item['title'] . self::append_bubble( $bubble_text );
 
 				break;
@@ -286,7 +311,7 @@ class WC_Admin_Marketplace_Promotions {
 	/**
 	 * Return the markup for a menu item bubble with a given text.
 	 *
-	 * @param string $bubble_text
+	 * @param string $bubble_text Text of bubble
 	 *
 	 * @return string
 	 */
